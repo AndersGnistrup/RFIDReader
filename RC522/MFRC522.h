@@ -2,10 +2,9 @@
 #define MFRC522_H_
 
 #include "main.h"
-#include "stm32f1xx_hal.h"
+#include "stm32f4xx_hal_spi.h"
 
-
-//Maximum length of the array
+// Maximum length of the array
 #define MAX_LEN 16
 
 //MF522 Command word
@@ -32,12 +31,10 @@
 # define PICC_TRANSFER        0xB0               // save the data in the buffer
 # define PICC_HALT            0x50               // Sleep
 
-
 //And MF522 The error code is returned when communication
 #define MI_OK                 0
 #define MI_NOTAGERR           1
 #define MI_ERR                2
-
 
 //------------------MFRC522 Register---------------
 //Page 0:Command and Status
@@ -110,24 +107,23 @@
 #define     Reserved34            0x3F
 //-----------------------------------------------
 // function definitions
-void Write_MFRC522(u_char, u_char);
-u_char Read_MFRC522(u_char);
-void SetBitMask(u_char, u_char);
-void ClearBitMask(u_char, u_char);
+void Write_MFRC522(uint8_t, uint8_t);
+uint8_t Read_MFRC522(uint8_t);
+void SetBitMask(uint8_t, uint8_t);
+void ClearBitMask(uint8_t, uint8_t);
 void AntennaOn();
 void AntennaOff();
 void MFRC522_Reset();
-void MFRC522_Init();
-u_char MFRC522_Request(u_char, u_char*);
-u_char MFRC522_ToCard(u_char, u_char*, u_char, u_char*, uint*);
-u_char MFRC522_Anticoll(u_char*);
-void CalulateCRC(u_char*, u_char, u_char*);
-u_char MFRC522_SelectTag(u_char*);
-u_char MFRC522_Auth(u_char, u_char, u_char*, u_char*);
-u_char MFRC522_Read(u_char, u_char*);
-u_char MFRC522_Write(u_char, u_char*);
+void MFRC522_Init(SPI_HandleTypeDef *hspi);
+uint8_t MFRC522_Request(uint8_t, uint8_t*);
+uint8_t MFRC522_ToCard(uint8_t, uint8_t*, uint8_t, uint8_t*, uint*);
+uint8_t MFRC522_Anticoll(uint8_t*);
+void CalulateCRC(uint8_t*, uint8_t, uint8_t*);
+uint8_t MFRC522_SelectTag(uint8_t*);
+uint8_t MFRC522_Auth(uint8_t, uint8_t, uint8_t*, uint8_t*);
+uint8_t MFRC522_Read(uint8_t, uint8_t*);
+uint8_t MFRC522_Write(uint8_t, uint8_t*);
 void MFRC522_Halt();
 void MFRC522_StopCrypto1(void);
-
 
 #endif /* MFRC522_H_ */

@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
+#include "MFRC522.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -72,7 +73,6 @@ static void MX_UART4_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -95,22 +95,41 @@ int main(void)
   MX_CAN1_Init();
   MX_SPI1_Init();
   MX_UART4_Init();
+
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-
+  MFRC522_Init(&hspi1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint8_t str[13] = "Hello world\r\n";
-  while (1)
-  {
+    char str[120];
+    uint8_t status, cardstr[MAX_LEN+1];
+
+    uint8_t version = Read_MFRC522(VersionReg);
+    while (1)
+    {
+        size_t len = 0;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  HAL_Delay(1000);
-	  CDC_Transmit_FS(str, 13);
-  }
+        HAL_Delay(2);
+        memset(cardstr, 0, sizeof(cardstr));
+        status = MFRC522_Request(PICC_REQIDL, cardstr);
+        if (status == MI_OK)
+        {
+            len = snprintf(&str[len], sizeof(str), "Card:\r\n\tVersion: %x\r\n\tType: %x,%x,%x\r\n", version, cardstr[0], cardstr[1], cardstr[2]);
+            status = MFRC522_Anticoll(cardstr);
+            if(status == MI_OK)
+            {
+                uint32_t serial =  cardstr[0] + (cardstr[1] << 8) + (cardstr[2]<< 16) + (cardstr[3]<<24);
+                len += snprintf(&str[len], sizeof(str) - len, "\tSerial: %lu\r\n", serial);
+            }
+        }
+
+        if (len > 0)
+            CDC_Transmit_FS((uint8_t*) str, len);
+    }
   /* USER CODE END 3 */
 }
 
@@ -218,7 +237,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -284,7 +303,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LD1_Pin|LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LD1_Pin|LD2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, RC522_CS_Pin|RC522_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
@@ -295,8 +317,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LD1_Pin LD3_Pin LD2_Pin */
-  GPIO_InitStruct.Pin = LD1_Pin|LD3_Pin|LD2_Pin;
+  /*Configure GPIO pins : LD1_Pin LD2_Pin */
+  GPIO_InitStruct.Pin = LD1_Pin|LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -308,6 +330,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RC522_CS_Pin RC522_RST_Pin */
+  GPIO_InitStruct.Pin = RC522_CS_Pin|RC522_RST_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USB_PowerSwitchOn_Pin */
