@@ -23,7 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
-#include "MFRC522.h"
+#include "RfidReader.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -98,37 +98,16 @@ int main(void)
 
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  MFRC522_Init(&hspi1);
+  RfidReader* ctx = rfidReaderInit(&hspi1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-    char str[120];
-    uint8_t status, cardstr[MAX_LEN+1];
-
-    uint8_t version = Read_MFRC522(VersionReg);
     while (1)
     {
-        size_t len = 0;
     /* USER CODE END WHILE */
-
+        rfidReaderLoop(ctx);
     /* USER CODE BEGIN 3 */
-        HAL_Delay(2);
-        memset(cardstr, 0, sizeof(cardstr));
-        status = MFRC522_Request(PICC_REQIDL, cardstr);
-        if (status == MI_OK)
-        {
-            len = snprintf(&str[len], sizeof(str), "Card:\r\n\tVersion: %x\r\n\tType: %x,%x,%x\r\n", version, cardstr[0], cardstr[1], cardstr[2]);
-            status = MFRC522_Anticoll(cardstr);
-            if(status == MI_OK)
-            {
-                uint32_t serial =  cardstr[0] + (cardstr[1] << 8) + (cardstr[2]<< 16) + (cardstr[3]<<24);
-                len += snprintf(&str[len], sizeof(str) - len, "\tSerial: %lu\r\n", serial);
-            }
-        }
-
-        if (len > 0)
-            CDC_Transmit_FS((uint8_t*) str, len);
     }
   /* USER CODE END 3 */
 }
