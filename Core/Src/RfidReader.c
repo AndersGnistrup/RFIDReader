@@ -9,6 +9,17 @@
 #include "usbd_cdc_if.h"
 #include "MFRC522.h"
 
+
+static int count = 0;
+/**
+  * @brief This function handles EXTI line4 interrupt.
+  */
+void EXTI4_IRQHandler(void)
+{
+    count++;
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
+}
+
 typedef struct RfidReader_ {
     SPI_HandleTypeDef *dev;
 } RfidReader_;
@@ -35,7 +46,8 @@ void rfidReaderLoop(RfidReader *ctx)
     status = MFRC522_Request(PICC_REQIDL, cardstr);
     if (status == MI_OK)
     {
-        len = snprintf(&str[len], sizeof(str), "Card:\r\n\tVersion: %x\r\n\tType: %x,%x,%x\r\n", version, cardstr[0], cardstr[1], cardstr[2]);
+        len = snprintf(&str[len], sizeof(str), "Card(%d):\r\n\tVersion: %x\r\n\tType: %x,%x,%x\r\n",
+                count, version, cardstr[0], cardstr[1], cardstr[2]);
         status = MFRC522_Anticoll(cardstr);
         if(status == MI_OK)
         {
